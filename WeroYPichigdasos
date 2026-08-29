@@ -169,17 +169,28 @@ local function findRemoteByName(name)
     return nil
 end
 
-local dupeStoreContainer = RStorage
-    :WaitForChild("Shared")
-    :WaitForChild("Universe")
-    :WaitForChild("Network")
-    :WaitForChild("RemoteEvent")
-local dupeSwingMelee = dupeStoreContainer:WaitForChild("SwingMelee")
-local dupeStore = dupeStoreContainer:WaitForChild("Store")
-local dupePickup = dupeStoreContainer:WaitForChild("Pickup")
-local dupeActionable = dupeStoreContainer:WaitForChild("Actionable")
-local dupeDropTool = dupeStoreContainer:WaitForChild("DropTool")
-local dupeObjectModels = Workspace:WaitForChild("ObjectModels")
+local dupeStoreContainer = nil
+local dupeSwingMelee = nil
+local dupeStore = nil
+local dupePickup = nil
+local dupeActionable = nil
+local dupeDropTool = nil
+local dupeObjectModels = nil
+pcall(function()
+    dupeStoreContainer = RStorage
+        :WaitForChild("Shared")
+        :WaitForChild("Universe")
+        :WaitForChild("Network")
+        :WaitForChild("RemoteEvent", 10)
+    if dupeStoreContainer then
+        dupeSwingMelee = dupeStoreContainer:WaitForChild("SwingMelee", 5)
+        dupeStore = dupeStoreContainer:WaitForChild("Store", 5)
+        dupePickup = dupeStoreContainer:WaitForChild("Pickup", 5)
+        dupeActionable = dupeStoreContainer:WaitForChild("Actionable", 5)
+        dupeDropTool = dupeStoreContainer:WaitForChild("DropTool", 5)
+    end
+    dupeObjectModels = Workspace:WaitForChild("ObjectModels", 10)
+end)
 
 local function getWorld()
     return tryRequire(RStorage.Shared.Universe.ECS.world)
@@ -424,18 +435,20 @@ end
 
 local function dupeObtenerNombresItems()
     local nombres = { "All" }
-    local nombreDatos = {}
-    local function procesarResultado(contenedor)
-        if not contenedor then return end
-        for _, item in ipairs(contenedor:GetChildren()) do
-            if item:IsA("Tool") and not nombreDatos[item.Name] then
-                nombreDatos[item.Name] = true
-                table.insert(nombres, item.Name)
+    local ok, resultado = pcall(function()
+        local nombreDatos = {}
+        local function procesarResultado(contenedor)
+            if not contenedor then return end
+            for _, item in ipairs(contenedor:GetChildren()) do
+                if item:IsA("Tool") and not nombreDatos[item.Name] then
+                    nombreDatos[item.Name] = true
+                    table.insert(nombres, item.Name)
+                end
             end
         end
-    end
-    procesarResultado(LocalPlayer:FindFirstChildOfClass("Backpack"))
-    procesarResultado(LocalPlayer.Character)
+        procesarResultado(LocalPlayer:FindFirstChildOfClass("Backpack"))
+        procesarResultado(LocalPlayer.Character)
+    end)
     return nombres
 end
 
@@ -744,7 +757,7 @@ local VisualTab = window:AddTab({ Icon = "eye", Name = "VISUALES" })
 local MoveTab = window:AddTab({ Icon = "person-running", Name = "MOVIMIENTO" })
 local MiscTab = window:AddTab({ Icon = "wrench", Name = "MISCELLANEO" })
 local CreditosTab = window:AddTab({ Icon = "star", Name = "CREDITOS" })
-local DupeTab = window:AddTab({ Icon = "copy", Name = "DUPE ITEMS" })
+local DupeTab = window:AddTab({ Icon = "box", Name = "DUPE ITEMS" })
 local CombatMain = CombatTab:AddSection({ Name = "COMBATE", Position = "left" })
 local CombatExtra = CombatTab:AddSection({ Name = "AL HACER CLIC (enemigos)", Position = "right" })
 CombatMain:AddLabel("Aura Asesina (auto-matar)"):AddToggle({
@@ -1027,68 +1040,38 @@ end)
 
 task.spawn(function()
     while task.wait(0.15) do
-        if dupeObjectModels then
-            for _, item in ipairs(dupeObjectModels:GetChildren()) do
-                local entityServer = item:GetAttribute("entity_server")
-                if entityServer ~= nil then
-                    if dupeCapturadoCondicion and dupePickup then
-                        if (dupeCantidadNum == 0) or (dupeSumaSecundaria < dupeCantidadNum) then
-                            if item.Name == dupeTexto then
-                                local success = pcall(function()
-                                    dupePickup:FireServer(entityServer)
-                                end)
-                                if success then
-                                    dupeSumaSecundaria = dupeSumaSecundaria + 1
+        pcall(function()
+            if dupeObjectModels then
+                for _, item in ipairs(dupeObjectModels:GetChildren()) do
+                    local entityServer = item:GetAttribute("entity_server")
+                    if entityServer ~= nil then
+                        if dupeCapturadoCondicion and dupePickup then
+                            if (dupeCantidadNum == 0) or (dupeSumaSecundaria < dupeCantidadNum) then
+                                if item.Name == dupeTexto then
+                                    local success = pcall(function()
+                                        dupePickup:FireServer(entityServer)
+                                    end)
+                                    if success then
+                                        dupeSumaSecundaria = dupeSumaSecundaria + 1
+                                    end
                                 end
                             end
                         end
-                    end
-                    if dupeBanderaRespaldo and dupeActionable then
-                        if item.Name == "money_bag" or string.find(string.lower(item.Name), "money") then
-                            pcall(function()
-                                dupeActionable:FireServer(entityServer)
-                            end)
+                        if dupeBanderaRespaldo and dupeActionable then
+                            if item.Name == "money_bag" or string.find(string.lower(item.Name), "money") then
+                                pcall(function()
+                                    dupeActionable:FireServer(entityServer)
+                                end)
+                            end
                         end
                     end
                 end
             end
-        end
-        if dupeBanderaAlterna and dupeDropTool then
-            local contenedor = LocalPlayer:FindFirstChildOfClass("Backpack") or LocalPlayer.Character
-            if contenedor then
-                local suma = 0
-                for _, item in ipairs(contenedor:GetChildren()) do
-                    if (dupeSumaAlterna > 0) and (suma >= dupeSumaAlterna) then
-                        break
-                    end
-                    if item:IsA("Tool") and ((dupeTextoSecundario == "All") or (item.Name == dupeTextoSecundario)) then
-                        pcall(function()
-                            dupeDropTool:FireServer(item)
-                        end)
-                        suma = suma + 1
-                    end
-                end
-            end
-        end
-        if dupeBanderaAdicional and dupeDropTool then
-            local opcion = LocalPlayer:FindFirstChildOfClass("Backpack") or LocalPlayer.Character
-            local miPersonaje = LocalPlayer.Character
-            local miHRP = miPersonaje and miPersonaje:FindFirstChild("HumanoidRootPart")
-            if opcion and miHRP then
-                local condicionMarco = Workspace:FindFirstChild("StartingZone", true)
-                    and Workspace:FindFirstChild("StartingZone.Buildings.TradingPost.BountySquare", true)
-                if condicionMarco then
-                    local marcoCF = nil
-                    if condicionMarco:IsA("BasePart") then
-                        marcoCF = condicionMarco.CFrame
-                    else
-                        marcoCF = condicionMarco:GetPivot()
-                    end
-                    local nuevaPos = marcoCF * CFrame.new(4, 3, 4)
-                    miHRP.CFrame = nuevaPos
-                    task.wait(0.1)
+            if dupeBanderaAlterna and dupeDropTool then
+                local contenedor = LocalPlayer:FindFirstChildOfClass("Backpack") or LocalPlayer.Character
+                if contenedor then
                     local suma = 0
-                    for _, item in ipairs(opcion:GetChildren()) do
+                    for _, item in ipairs(contenedor:GetChildren()) do
                         if (dupeSumaAlterna > 0) and (suma >= dupeSumaAlterna) then
                             break
                         end
@@ -1101,28 +1084,62 @@ task.spawn(function()
                     end
                 end
             end
-        end
+            if dupeBanderaAdicional and dupeDropTool then
+                local opcion = LocalPlayer:FindFirstChildOfClass("Backpack") or LocalPlayer.Character
+                local miPersonaje = LocalPlayer.Character
+                local miHRP = miPersonaje and miPersonaje:FindFirstChild("HumanoidRootPart")
+                if opcion and miHRP then
+                    local condicionMarco = Workspace:FindFirstChild("StartingZone", true)
+                        and Workspace:FindFirstChild("StartingZone.Buildings.TradingPost.BountySquare", true)
+                    if condicionMarco then
+                        local marcoCF = nil
+                        if condicionMarco:IsA("BasePart") then
+                            marcoCF = condicionMarco.CFrame
+                        else
+                            marcoCF = condicionMarco:GetPivot()
+                        end
+                        local nuevaPos = marcoCF * CFrame.new(4, 3, 4)
+                        miHRP.CFrame = nuevaPos
+                        task.wait(0.1)
+                        local suma = 0
+                        for _, item in ipairs(opcion:GetChildren()) do
+                            if (dupeSumaAlterna > 0) and (suma >= dupeSumaAlterna) then
+                                break
+                            end
+                            if item:IsA("Tool") and ((dupeTextoSecundario == "All") or (item.Name == dupeTextoSecundario)) then
+                                pcall(function()
+                                    dupeDropTool:FireServer(item)
+                                end)
+                                suma = suma + 1
+                            end
+                        end
+                    end
+                end
+            end
+        end)
     end
 end)
 
 task.spawn(function()
     while task.wait(1) do
-        if dupeBanderaSecundaria and dupeStore then
-            for _, item in ipairs(Workspace:GetDescendants()) do
-                if item:IsA("Humanoid") and item.Health <= 0 then
-                    local padre = item.Parent
-                    if padre and padre:IsA("Model") then
-                        local condicion = padre:GetAttribute("entity_server")
-                            or (padre.PrimaryPart and padre.PrimaryPart:GetAttribute("entity_server"))
-                        if condicion then
-                            pcall(function()
-                                dupeStore:FireServer(condicion)
-                            end)
+        pcall(function()
+            if dupeBanderaSecundaria and dupeStore then
+                for _, item in ipairs(Workspace:GetDescendants()) do
+                    if item:IsA("Humanoid") and item.Health <= 0 then
+                        local padre = item.Parent
+                        if padre and padre:IsA("Model") then
+                            local condicion = padre:GetAttribute("entity_server")
+                                or (padre.PrimaryPart and padre.PrimaryPart:GetAttribute("entity_server"))
+                            if condicion then
+                                pcall(function()
+                                    dupeStore:FireServer(condicion)
+                                end)
+                            end
                         end
                     end
                 end
             end
-        end
+        end)
     end
 end)
 
@@ -1186,7 +1203,7 @@ DupeExtra:AddLabel("Auto Recolectar Bolsas de Dinero"):AddToggle({
 
 DupeExtra:AddLabel("Seleccionar item de mochila"):AddDropdown({
     Default = "All",
-    Values = dupeObtenerNombresItems(),
+    Values = { "All", "shotgun", "revolver", "rifle" },
     Flag = "DupeDropSeleccion",
     Callback = function(v) dupeTextoSecundario = v end,
 })
@@ -1195,7 +1212,8 @@ DupeExtra:AddButton({
     Icon = "refresh",
     Name = "🔄 Actualizar lista mochila",
     Callback = function()
-        Logging.new("refresh", "Lista de mochila actualizada", 2)
+        local nuevosItems = dupeObtenerNombresItems()
+        Logging.new("refresh", "Lista actualizada: " .. tostring(#nuevosItems) .. " items", 2)
     end,
 })
 
