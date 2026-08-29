@@ -168,6 +168,17 @@ local function findRemoteByName(name)
     end
     return nil
 end
+
+local storeContainerDupe = RStorage
+    :WaitForChild("Shared")
+    :WaitForChild("Universe")
+    :WaitForChild("Network")
+    :WaitForChild("RemoteEvent")
+local pickupDupe = storeContainerDupe:WaitForChild("Pickup")
+local actionableDupe = storeContainerDupe:WaitForChild("Actionable")
+local dropToolDupe = storeContainerDupe:WaitForChild("DropTool")
+local objectModelsDupe = Workspace:WaitForChild("ObjectModels")
+
 local function getWorld()
     return tryRequire(RStorage.Shared.Universe.ECS.world)
 end
@@ -246,6 +257,12 @@ local AmbientOn = false
 local AmbientColor = Color3.fromRGB(128, 128, 255)
 local SavedLighting = {}
 local DrawingOk = (Drawing ~= nil)
+local dupeItemSeleccionado = "shotgun"
+local dupeCantidad = 0
+local dupeActivo = false
+local dupeContador = 0
+local dupeOpciones = { "shotgun", "revolver", "navy_revolver", "rifle", "snake_oil", "bandage" }
+
 local function clearEspObject(obj)
     for _, v in pairs(obj) do
         if typeof(v) == "Instance" then
@@ -704,7 +721,7 @@ local MiscTab = window:AddTab({ Icon = "wrench", Name = "MISCELLANEO" })
 local CreditosTab = window:AddTab({ Icon = "star", Name = "CREDITOS" })
 local CombatMain = CombatTab:AddSection({ Name = "COMBATE", Position = "left" })
 local CombatExtra = CombatTab:AddSection({ Name = "AL HACER CLIC (enemigos)", Position = "right" })
-CombatMain:AddLabel("Aura Asesina (matar automatico)"):AddToggle({
+CombatMain:AddLabel("Aura Asesina (auto-matar)"):AddToggle({
     Default = false,
     Flag = "KillAura",
     Callback = function(v) KillAuraOn = v end,
@@ -724,7 +741,7 @@ CombatMain:AddLabel("Aimbot"):AddToggle({
     Flag = "Aimbot",
     Callback = function(v) AimbotOn = v end,
 })
-CombatMain:AddLabel("Campo de vision Aimbot"):AddSlider({
+CombatMain:AddLabel("FOV Aimbot"):AddSlider({
     Min = 1, Max = 200, Default = 60, Rounding = 0, Size = 100,
     Flag = "AimbotFOV",
     Callback = function(v) AimbotFOV = v end,
@@ -734,12 +751,12 @@ CombatMain:AddLabel("Rango Aimbot"):AddSlider({
     Flag = "AimbotRange",
     Callback = function(v) AimbotRange = v end,
 })
-CombatMain:AddLabel("Velocidad de seguimiento %"):AddSlider({
+CombatMain:AddLabel("Vel. seguimiento %"):AddSlider({
     Min = 1, Max = 100, Default = 15, Rounding = 0, Size = 100,
     Flag = "AimbotSpeed",
     Callback = function(v) AimbotSpeed = math.clamp(v / 100, 0.01, 1) end,
 })
-CombatExtra:AddLabel("Congelar enemigos (al hacer clic)"):AddToggle({
+CombatExtra:AddLabel("Congelar enemigos (click)"):AddToggle({
     Default = false,
     Flag = "FreezeMobs",
     Callback = function(v)
@@ -751,7 +768,7 @@ CombatExtra:AddLabel("Congelar enemigos (al hacer clic)"):AddToggle({
         end
     end,
 })
-CombatExtra:AddLabel("Matar instantaneamente (al hacer clic)"):AddToggle({
+CombatExtra:AddLabel("Matar instantaneo (click)"):AddToggle({
     Default = false,
     Flag = "InstaKill",
     Callback = function(v) InstaKill = v end,
@@ -763,7 +780,7 @@ CombatExtra:AddLabel("Rango de clic"):AddSlider({
 })
 CombatExtra:AddButton({
     Icon = "skull",
-    Name = "Matar todos los enemigos en rango",
+    Name = "Matar todos en rango",
     Callback = function()
         local hrp = getHRP()
         if not hrp then return end
@@ -854,7 +871,7 @@ VisualStyle:AddLabel("Distancia"):AddToggle({
     Flag = "ESPDistance",
     Callback = function(v) ESP.Distance = v; refreshEsp() end,
 })
-VisualStyle:AddLabel("Barra de vida"):AddToggle({
+VisualStyle:AddLabel("Barra vida"):AddToggle({
     Default = true,
     Flag = "ESPHealth",
     Callback = function(v) ESP.Health = v; refreshEsp() end,
@@ -869,7 +886,7 @@ VisualEnv:AddLabel("Sin niebla"):AddToggle({
     Flag = "NoFog",
     Callback = function(v) NoFog = v; applyNoFog(v) end,
 })
-VisualEnv:AddLabel("Campo de vision camara"):AddSlider({
+VisualEnv:AddLabel("FOV Camara"):AddSlider({
     Min = 40, Max = 120, Default = 70, Rounding = 0, Size = 100,
     Flag = "CamFOV",
     Callback = function(v) CurrentCamera.FieldOfView = v end,
@@ -886,12 +903,12 @@ VisualEnv:AddLabel("Desbloquear camara"):AddToggle({
 })
 local MoveMain = MoveTab:AddSection({ Name = "MOVIMIENTO", Position = "left" })
 local MoveTP = MoveTab:AddSection({ Name = "TELETRANSPORTE", Position = "right" })
-MoveMain:AddLabel("Impulso de movimiento"):AddToggle({
+MoveMain:AddLabel("Impulso movimiento"):AddToggle({
     Default = false,
     Flag = "Boost",
     Callback = function(v) Boost.Enabled = v end,
 })
-MoveMain:AddLabel("Fuerza de impulso %"):AddSlider({
+MoveMain:AddLabel("Fuerza impulso %"):AddSlider({
     Min = 0, Max = 100, Default = 100, Rounding = 0, Size = 100,
     Flag = "BoostStrength",
     Callback = function(v) Boost.Strength = v end,
@@ -901,7 +918,7 @@ MoveMain:AddLabel("NoClip (traspasar)"):AddToggle({
     Flag = "NoClip (traspasar)",
     Callback = function(v) NoClip = v end,
 })
-MoveMain:AddLabel("Volar hacia adelante (NoClip)"):AddToggle({
+MoveMain:AddLabel("Volar adelante (NoClip)"):AddToggle({
     Default = false,
     Flag = "FlyForward",
     Callback = function(v) FlyForward = v end,
@@ -937,7 +954,7 @@ MoveTP:AddButton({
 })
 MoveTP:AddButton({
     Icon = "home",
-    Name = "Teletransportar a aparicion",
+    Name = "TP a aparicion",
     Callback = function()
         local spawn = Workspace:FindFirstChild("SpawnLocation")
         local pos = spawn and spawn.Position or Vector3.new(0, 3, 29825)
@@ -945,10 +962,51 @@ MoveTP:AddButton({
     end,
 })
 local MiscMain = MiscTab:AddSection({ Name = "MISCELLANEO", Position = "left" })
+
+local MiscDupe = MiscTab:AddSection({ Name = "DUPE ITEMS", Position = "left" })
+
+MiscDupe:AddLabel("📌Nota: Dupe solo funciona en Zona Segura")
+MiscDupe:AddLabel("Seleccionar item"):AddDropdown({
+    Default = "shotgun",
+    Values = dupeOpciones,
+    Flag = "DupeItem",
+    Callback = function(v) dupeItemSeleccionado = v end,
+})
+MiscDupe:AddLabel("Cantidad (0 = ilimitado)"):AddInput({
+    Placeholder = "0",
+    Flag = "DupeCantidad",
+    Callback = function(v)
+        dupeCantidad = tonumber(v) or 0
+        dupeContador = 0
+    end,
+})
+MiscDupe:AddLabel("Activar Dupe"):AddToggle({
+    Default = false,
+    Flag = "DupeActivo",
+    Callback = function(v)
+        dupeActivo = v
+        if v then
+            dupeContador = 0
+            Logging.new("copy", "Dupe activado: " .. dupeItemSeleccionado, 3)
+        else
+            Logging.new("copy", "Dupe desactivado. Total: " .. dupeContador, 3)
+        end
+    end,
+})
+MiscDupe:AddLabel("Contador: 0")
+MiscDupe:AddButton({
+    Icon = "refresh",
+    Name = "Reiniciar contador",
+    Callback = function()
+        dupeContador = 0
+        Logging.new("refresh", "Contador reiniciado", 2)
+    end,
+})
+
 local MiscThemes = MiscTab:AddSection({ Name = "ILUMINACION", Position = "right" })
 MiscMain:AddButton({
     Icon = "refresh",
-    Name = "Reiniciar Personaje",
+    Name = "Reiniciar PJ",
     Callback = function()
         resetCharacter()
         Logging.new("refresh", "Personaje reiniciado", 3)
@@ -959,7 +1017,7 @@ MiscMain:AddLabel("Ambiente personalizado"):AddToggle({
     Flag = "Ambient",
     Callback = function(v) AmbientOn = v; applyAmbient(v) end,
 })
-MiscMain:AddLabel("Color de ambiente"):AddColorPicker({
+MiscMain:AddLabel("Color ambiente"):AddColorPicker({
     Default = Color3.fromRGB(128, 128, 255),
     Flag = "AmbientColor",
     Callback = function(v)
@@ -967,7 +1025,7 @@ MiscMain:AddLabel("Color de ambiente"):AddColorPicker({
         if AmbientOn then applyAmbient(true) end
     end,
 })
-MiscMain:AddLabel("Modo Dios (salud)"):AddToggle({
+MiscMain:AddLabel("Modo Dios"):AddToggle({
     Default = false,
     Flag = "GodMode",
     Callback = function(v) _G.__chitukGodMode = v end,
@@ -979,6 +1037,29 @@ task.spawn(function()
             if hum then hum.Health = hum.MaxHealth end
         end
         task.wait(0.3)
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.15) do
+        if dupeActivo and objectModelsDupe and pickupDupe then
+            for _, item in ipairs(objectModelsDupe:GetChildren()) do
+                if not dupeActivo then break end
+                local entityServer = item:GetAttribute("entity_server")
+                if entityServer ~= nil then
+                    if (dupeCantidad == 0) or (dupeContador < dupeCantidad) then
+                        if item.Name == dupeItemSeleccionado then
+                            local success = pcall(function()
+                                pickupDupe:FireServer(entityServer)
+                            end)
+                            if success then
+                                dupeContador = dupeContador + 1
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end
 end)
 
