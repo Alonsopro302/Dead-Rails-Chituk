@@ -8,6 +8,7 @@ pcall(function()
         rg.Parent = cg
     end
 end)
+
 local NeverLose = nil
 for _attempt = 1, 6 do
     local ok, lib = pcall(function()
@@ -20,14 +21,17 @@ for _attempt = 1, 6 do
     task.wait(0.6)
 end
 if not NeverLose then
-    warn("Chituk: error al cargar la libreria NeverLose")
+    warn("Chituk: failed to load NeverLose library")
     return
 end
+
 local Yellow = Color3.fromRGB(255, 210, 60)
 NeverLose.AccentColor = Yellow
 NeverLose.IconColor = Yellow
+
 local Notification = NeverLose:CreateNotification()
 local Logging = NeverLose:CreateLogger()
+
 local window = NeverLose:CreateWindow({
     Logo = "rbxthumb://type=Asset&id=109365656627783&w=150&h=150",
     Name = "Chituk Scripts",
@@ -37,6 +41,7 @@ local window = NeverLose:CreateWindow({
     Enable3DRenderer = false,
     Keybind = "Insert",
 })
+
 local FloatButton = Instance.new("ImageButton")
 FloatButton.Name = "ChitukScriptsFloatButton"
 FloatButton.AnchorPoint = Vector2.new(1, 1)
@@ -50,15 +55,19 @@ FloatButton.ImageColor3 = Color3.fromRGB(255, 210, 60)
 FloatButton.AutoButtonColor = true
 FloatButton.ZIndex = 200
 FloatButton.Parent = NeverLose.ScreenGui
+
 local FloatCorner = Instance.new("UICorner")
 FloatCorner.CornerRadius = UDim.new(0, 8)
 FloatCorner.Parent = FloatButton
+
 FloatButton.Activated:Connect(function()
     window:ToggleInterface()
 end)
+
 pcall(function()
     NeverLose.Drag(FloatButton, FloatButton, 0.15)
 end)
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -66,14 +75,17 @@ local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local RStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+
 local LocalPlayer = Players.LocalPlayer
 local CurrentCamera = Workspace.CurrentCamera
 local Mouse = LocalPlayer:GetMouse()
+
 local function tryRequire(path)
     local ok, mod = pcall(require, path)
     if ok and type(mod) == "table" then return mod end
     return nil
 end
+
 local function getCharacter()
     return LocalPlayer.Character
 end
@@ -102,6 +114,7 @@ local function teleportTo(pos, offsetY)
         pcall(function() hum:ChangeState(Enum.HumanoidStateType.Running) end)
     end
 end
+
 local function isMob(model)
     return model:IsA("Model")
         and model:FindFirstChild("HumanoidRootPart") ~= nil
@@ -109,9 +122,11 @@ local function isMob(model)
         and not Players:GetPlayerFromCharacter(model)
         and not Players:FindFirstChild(model.Name)
 end
+
 local function isEnemyMob(model)
     return isMob(model) and not model:HasTag("Friendly")
 end
+
 local function getMobs(filter)
     local out = {}
     for _, v in ipairs(Workspace:GetDescendants()) do
@@ -121,6 +136,7 @@ local function getMobs(filter)
     end
     return out
 end
+
 local function getNearestEnemy(maxRange)
     local hrp = getHRP()
     if not hrp then return nil end
@@ -138,6 +154,7 @@ local function getNearestEnemy(maxRange)
     end
     return best
 end
+
 local function freezeMob(model)
     local hrp = model:FindFirstChild("HumanoidRootPart")
     local hum = model:FindFirstChildOfClass("Humanoid")
@@ -148,6 +165,7 @@ local function freezeMob(model)
     hum.WalkSpeed = 0
     hum.JumpPower = 0
 end
+
 local function unfreezeMob(model)
     local hrp = model:FindFirstChild("HumanoidRootPart")
     local hum = model:FindFirstChildOfClass("Humanoid")
@@ -158,6 +176,7 @@ local function unfreezeMob(model)
     hum.PlatformStand = false
     hum.AutoRotate = true
 end
+
 local function findRemoteByName(name)
     local folder = RStorage.Shared and RStorage.Shared.Universe and RStorage.Shared.Universe.Network and RStorage.Shared.Universe.Network.RemoteEvent
     if not folder then return nil end
@@ -168,29 +187,6 @@ local function findRemoteByName(name)
     end
     return nil
 end
-
-local dupeStoreContainer = nil
-local dupeSwingMelee = nil
-local dupeStore = nil
-local dupePickup = nil
-local dupeActionable = nil
-local dupeDropTool = nil
-local dupeObjectModels = nil
-pcall(function()
-    dupeStoreContainer = RStorage
-        :WaitForChild("Shared")
-        :WaitForChild("Universe")
-        :WaitForChild("Network")
-        :WaitForChild("RemoteEvent", 10)
-    if dupeStoreContainer then
-        dupeSwingMelee = dupeStoreContainer:WaitForChild("SwingMelee", 5)
-        dupeStore = dupeStoreContainer:WaitForChild("Store", 5)
-        dupePickup = dupeStoreContainer:WaitForChild("Pickup", 5)
-        dupeActionable = dupeStoreContainer:WaitForChild("Actionable", 5)
-        dupeDropTool = dupeStoreContainer:WaitForChild("DropTool", 5)
-    end
-    dupeObjectModels = Workspace:WaitForChild("ObjectModels", 10)
-end)
 
 local function getWorld()
     return tryRequire(RStorage.Shared.Universe.ECS.world)
@@ -204,12 +200,14 @@ end
 local function getFindEntity()
     return tryRequire(RStorage.Shared.Universe.findEntityFromModelInstance)
 end
+
 local function getEntityServerId(entity)
     local cr = getClientReplicator()
     if not cr then return nil end
     local ok, se = pcall(function() return cr:get_server_entity(entity) end)
     return ok and se or nil
 end
+
 local function fireRemote(name, args)
     local remotes = tryRequire(RStorage.Shared.Universe.Remotes)
     local wrapped = nil
@@ -223,6 +221,7 @@ local function fireRemote(name, args)
         pcall(function() inst:FireServer(unpack(args)) end)
     end
 end
+
 local function resetCharacter()
     local remotes = tryRequire(RStorage.Shared.Universe.Remotes)
     if remotes and remotes.ResetCharacter then
@@ -234,6 +233,101 @@ local function resetCharacter()
         pcall(function() inst:FireServer() end)
     end
 end
+
+local function findBonds()
+    local out = {}
+    local world = getWorld()
+    local components = getComponents()
+    if world and components then
+        for entity, act in world:query(components.Actionable) do
+            if act and act.callback == "collect_bond" then
+                local mi = world:get(entity, components.ModelInstance)
+                if mi and mi:IsDescendantOf(Workspace) then
+                    out[#out + 1] = entity
+                end
+            end
+        end
+    end
+    local findEntity = getFindEntity()
+    local function scanBillboards(folder)
+        if not folder then return end
+        for _, v in ipairs(folder:GetChildren()) do
+            local oi = v:FindFirstChild("ObjectInfo") or v:FindFirstChild("ObjectInformation")
+            if oi and oi:IsA("BillboardGui") then
+                local title = oi:FindFirstChild("Title")
+                if title and title.Text == "Bond" then
+                    local entity = findEntity and findEntity(v)
+                    if entity then
+                        out[#out + 1] = entity
+                    end
+                end
+            end
+        end
+    end
+    scanBillboards(Workspace:FindFirstChild("RuntimeItems"))
+    scanBillboards(Workspace:FindFirstChild("ObjectModels"))
+    return out
+end
+
+local function getEntityPosition(entity)
+    local world = getWorld()
+    local components = getComponents()
+    if not world or not components then return nil end
+    local mi = world:get(entity, components.ModelInstance)
+    if not mi then return nil end
+    if mi:IsA("Model") then
+        local prim = mi.PrimaryPart or mi:FindFirstChild("HumanoidRootPart") or mi:FindFirstChildWhichIsA("BasePart")
+        return prim and prim.Position or nil
+    end
+    return mi:IsA("BasePart") and mi.Position or nil
+end
+
+local function getEntityModel(entity)
+    local world = getWorld()
+    local components = getComponents()
+    if not world or not components then return nil end
+    return world:get(entity, components.ModelInstance)
+end
+
+local function collectEntity(entity)
+    local se = getEntityServerId(entity)
+    if not se then return false end
+    fireRemote("Actionable", { se })
+    task.wait(0.12)
+    fireRemote("Pickup", { se })
+    return true
+end
+
+local function moveEntityModel(entity, cframe)
+    local mi = getEntityModel(entity)
+    if not mi then return false end
+    if mi:IsA("Model") then
+        pcall(function()
+            mi:SetPrimaryPartCFrame(cframe)
+            local hrp = mi.PrimaryPart or mi:FindFirstChild("HumanoidRootPart")
+            if hrp and hrp:IsA("BasePart") then hrp.CFrame = cframe end
+        end)
+    else
+        pcall(function() mi.CFrame = cframe end)
+    end
+    return true
+end
+
+local function getLootItems()
+    local out = {}
+    for _, folderName in ipairs({ "RuntimeItems", "ObjectModels" }) do
+        local folder = Workspace:FindFirstChild(folderName)
+        if folder then
+            for _, v in ipairs(folder:GetChildren()) do
+                if v:IsA("Model") or v:IsA("BasePart") then
+                    out[#out + 1] = v
+                end
+            end
+        end
+    end
+    return out
+end
+
 local Boost = { Enabled = false, Strength = 100 }
 local NoClip = false
 local FlyForward = false
@@ -253,6 +347,12 @@ local KillAuraDelay = 0.1
 local FreezeMobs = false
 local InstaKill = false
 local KillRange = 50
+
+local BondFarm = { Enabled = false, Mode = "TP to bond", Delay = 0.4, ResetWhenDone = true, MinCollected = 1, Collected = 0, Status = nil }
+local AutoCollect = { Enabled = false, Delay = 0.35, Status = nil }
+local BringItemsOn = false
+local BringItemsInterval = 1.5
+
 local ESP = {
     Player = false, Train = false, Item = false, Mob = false, Ore = false,
     Box = false, Highlight = true, Tracer = false,
@@ -266,21 +366,15 @@ local ESP = {
     },
     Cache = {},
 }
+
 local AmbientOn = false
 local AmbientColor = Color3.fromRGB(128, 128, 255)
 local SavedLighting = {}
+
 local DrawingOk = (Drawing ~= nil)
-local dupeTexto = "shotgun"
-local dupeOpcionesLista = { "shotgun", "revolver", "navy_revolver", "rifle", "snake_oil", "bandage" }
-local dupeCantidadNum = 0
-local dupeCapturadoCondicion = false
-local dupeSumaSecundaria = 0
-local dupeBanderaSecundaria = false
-local dupeBanderaRespaldo = false
-local dupeBanderaAlterna = false
-local dupeBanderaAdicional = false
-local dupeSumaAlterna = 0
-local dupeTextoSecundario = "All"
+
+local Dupe = { Enabled = false, Item = "shotgun", Amount = 0, Count = 0 }
+local DupeStatus = nil
 
 local function clearEspObject(obj)
     for _, v in pairs(obj) do
@@ -291,6 +385,7 @@ local function clearEspObject(obj)
         end
     end
 end
+
 local function makeEspObject(root, category)
     local color = ESP.Colors[category]
     local obj = {}
@@ -337,6 +432,7 @@ local function makeEspObject(root, category)
     end
     return obj
 end
+
 local function getBoundingBoxCorners(model)
     local prim = model.PrimaryPart
     if not prim then
@@ -362,10 +458,12 @@ local function getBoundingBoxCorners(model)
     end
     return pts
 end
+
 local function updateEsp()
     if not DrawingOk and not ESP.Highlight then return end
     local myPos = (getHRP() and getHRP().Position) or Vector3.zero
     local viewport = CurrentCamera.ViewportSize
+
     for category, cache in pairs(ESP.Cache) do
         for root, obj in pairs(cache) do
             local ok = root and root.Parent
@@ -433,40 +531,6 @@ local function updateEsp()
     end
 end
 
-local function dupeObtenerNombresItems()
-    local nombres = { "All" }
-    local ok, resultado = pcall(function()
-        local nombreDatos = {}
-        local function procesarResultado(contenedor)
-            if not contenedor then return end
-            for _, item in ipairs(contenedor:GetChildren()) do
-                if item:IsA("Tool") and not nombreDatos[item.Name] then
-                    nombreDatos[item.Name] = true
-                    table.insert(nombres, item.Name)
-                end
-            end
-        end
-        procesarResultado(LocalPlayer:FindFirstChildOfClass("Backpack"))
-        procesarResultado(LocalPlayer.Character)
-    end)
-    return nombres
-end
-
-local function getLootItems()
-    local out = {}
-    for _, folderName in ipairs({ "RuntimeItems", "ObjectModels" }) do
-        local folder = Workspace:FindFirstChild(folderName)
-        if folder then
-            for _, v in ipairs(folder:GetChildren()) do
-                if v:IsA("Model") or v:IsA("BasePart") then
-                    out[#out + 1] = v
-                end
-            end
-        end
-    end
-    return out
-end
-
 local function refreshEsp()
     for category, cache in pairs(ESP.Cache) do
         for _, obj in pairs(cache) do
@@ -475,6 +539,7 @@ local function refreshEsp()
         cache = nil
     end
     ESP.Cache = {}
+
     local function addCategory(category, roots)
         if not ESP[category] then return end
         local cache = {}
@@ -483,6 +548,7 @@ local function refreshEsp()
         end
         ESP.Cache[category] = cache
     end
+
     if ESP.Player then
         local players = {}
         for _, p in ipairs(Players:GetPlayers()) do
@@ -492,18 +558,22 @@ local function refreshEsp()
         end
         addCategory("Player", players)
     end
+
     if ESP.Train then
         local train = Workspace:FindFirstChild("Train")
         if train then
             addCategory("Train", { train })
         end
     end
+
     if ESP.Item then
         addCategory("Item", getLootItems())
     end
+
     if ESP.Mob then
         addCategory("Mob", getMobs())
     end
+
     if ESP.Ore then
         local oreFolder = Workspace:FindFirstChild("Ore")
         if oreFolder then
@@ -515,9 +585,11 @@ local function refreshEsp()
         end
     end
 end
+
 RunService.RenderStepped:Connect(function()
     updateEsp()
 end)
+
 local function findAimbotTarget()
     local hrp = getHRP()
     if not hrp then return nil end
@@ -540,6 +612,7 @@ local function findAimbotTarget()
     end
     return best
 end
+
 RunService.RenderStepped:Connect(function(dt)
     if AimbotOn then
         local target = findAimbotTarget()
@@ -549,6 +622,7 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 end)
+
 task.spawn(function()
     while true do
         if KillAuraOn then
@@ -572,6 +646,7 @@ task.spawn(function()
         end
     end
 end)
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed or input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
     local hrp = getHRP()
@@ -595,6 +670,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         hum.Health = 0
     end
 end)
+
 local function applyTransBuild(state)
     local folder = Workspace:FindFirstChild("RandomBuildings")
     if not folder then return end
@@ -607,6 +683,7 @@ local function applyTransBuild(state)
         end
     end
 end
+
 local CameraConn = nil
 local function startCameraUnlock()
     if CameraConn then return end
@@ -625,6 +702,7 @@ local function startCameraUnlock()
         LocalPlayer.CameraMinZoomDistance = 0.5
     end)
 end
+
 local FullbrightConn = nil
 local function applyFullbright(state)
     if state then
@@ -653,6 +731,7 @@ local function applyFullbright(state)
         end
     end
 end
+
 local function applyNoFog(state)
     if state then
         Lighting.FogEnd = 10000000000
@@ -672,6 +751,7 @@ local function applyNoFog(state)
         end
     end
 end
+
 local function applyAmbient(state)
     if state then
         Lighting.Ambient = AmbientColor
@@ -679,6 +759,7 @@ local function applyAmbient(state)
         Lighting.Ambient = SavedLighting.Ambient or Color3.new(0, 0, 0)
     end
 end
+
 task.spawn(function()
     while true do
         local hum = getHumanoid()
@@ -696,6 +777,7 @@ task.spawn(function()
         task.wait(0.3)
     end
 end)
+
 task.spawn(function()
     while true do
         if NoClip then
@@ -711,6 +793,7 @@ task.spawn(function()
         task.wait(0.1)
     end
 end)
+
 RunService.Heartbeat:Connect(function(dt)
     if FlyForward then
         local char = getCharacter()
@@ -740,37 +823,204 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 end)
+
+task.spawn(function()
+    while true do
+        if BondFarm.Enabled then
+            local hrp = getHRP()
+            if hrp then
+                local bonds = findBonds()
+                local targets = {}
+                for _, e in ipairs(bonds) do
+                    local pos = getEntityPosition(e)
+                    if pos then
+                        table.insert(targets, { entity = e, pos = pos })
+                    end
+                end
+                if #targets > 0 then
+                    for _, t in ipairs(targets) do
+                        if not BondFarm.Enabled then break end
+                        if BondFarm.Mode == "TP to bond" then
+                            teleportTo(t.pos, 2)
+                        else
+                            moveEntityModel(t.entity, hrp.CFrame * CFrame.new(0, 0, -4))
+                        end
+                        task.wait(0.15)
+                        if collectEntity(t.entity) then
+                            BondFarm.Collected = BondFarm.Collected + 1
+                        end
+                        task.wait(BondFarm.Delay)
+                    end
+                else
+                    if BondFarm.ResetWhenDone and BondFarm.Collected >= BondFarm.MinCollected then
+                        if BondFarm.Status then BondFarm.Status:SetText("No bonds left -> resetting...") end
+                        resetCharacter()
+                        BondFarm.Collected = 0
+                        task.wait(3)
+                    end
+                    if BondFarm.Status then
+                        BondFarm.Status:SetText(string.format("Bonds: 0 | collected: %d", BondFarm.Collected))
+                    end
+                    task.wait(1)
+                end
+                if BondFarm.Status then
+                    BondFarm.Status:SetText(string.format("Bonds: %d | collected: %d", #targets, BondFarm.Collected))
+                end
+            else
+                task.wait(1)
+            end
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if AutoCollect.Enabled then
+            local hrp = getHRP()
+            if hrp then
+                local items = getLootItems()
+                for _, item in ipairs(items) do
+                    local prim = item:IsA("Model") and (item.PrimaryPart or item:FindFirstChild("HumanoidRootPart")) or item
+                    if prim then
+                        teleportTo(prim.Position, 2)
+                        task.wait(0.1)
+                        local findEntity = getFindEntity()
+                        local entity = findEntity and findEntity(item)
+                        if entity then
+                            collectEntity(entity)
+                        end
+                        task.wait(AutoCollect.Delay)
+                    end
+                end
+            end
+            task.wait(0.8)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if BringItemsOn then
+            local hrp = getHRP()
+            if hrp then
+                for _, item in ipairs(getLootItems()) do
+                    local findEntity = getFindEntity()
+                    local entity = findEntity and findEntity(item)
+                    if entity then
+                        moveEntityModel(entity, hrp.CFrame * CFrame.new(0, 0, -5))
+                    else
+                        local prim = item:IsA("Model") and (item.PrimaryPart or item:FindFirstChild("HumanoidRootPart")) or item
+                        if prim then
+                            pcall(function() prim.CFrame = hrp.CFrame * CFrame.new(0, 0, -5) end)
+                        end
+                    end
+                end
+            end
+            task.wait(BringItemsInterval)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
 local LOCATIONS = {
-    { "Zona de inicio", Vector3.new(54.53, 0.2, 29727.57) },
-    { "Mercader viajero", Vector3.new(-356.21, 0.5, 25654.89) },
-    { "Castillo vampiro", Vector3.new(361.13, 0, -8299.34) },
-    { "Fuerte Constitucion", Vector3.new(-441.52, 18.25, -13255.75) },
-    { "Letrero Mexico", Vector3.new(73.68, 4.93, -19607.88) },
-    { "Laboratorio Tesla", Vector3.new(306.73, 0.5, -20505.94) },
-    { "Refineria de petroleo", Vector3.new(-64.7, 0.05, -28053.83) },
-    { "Prision Stillwater", Vector3.new(-1014.63, 24.75, -39759.41) },
-    { "Piramide extrana", Vector3.new(893.15, 3.93, -39462.39) },
+    { "Starting Zone", Vector3.new(54.53, 0.2, 29727.57) },
+    { "Travelling Merchant", Vector3.new(-356.21, 0.5, 25654.89) },
+    { "Vampire Castle", Vector3.new(361.13, 0, -8299.34) },
+    { "Fort Constitution", Vector3.new(-441.52, 18.25, -13255.75) },
+    { "Mexico Sign", Vector3.new(73.68, 4.93, -19607.88) },
+    { "Tesla Lab", Vector3.new(306.73, 0.5, -20505.94) },
+    { "Oil Refinery", Vector3.new(-64.7, 0.05, -28053.83) },
+    { "Stillwater Prison", Vector3.new(-1014.63, 24.75, -39759.41) },
+    { "Strange Pyramid", Vector3.new(893.15, 3.93, -39462.39) },
 }
+
 local function BuildUI()
-local CombatTab = window:AddTab({ Icon = "sword", Name = "COMBATE" })
-local VisualTab = window:AddTab({ Icon = "eye", Name = "VISUALES" })
-local MoveTab = window:AddTab({ Icon = "person-running", Name = "MOVIMIENTO" })
-local MiscTab = window:AddTab({ Icon = "wrench", Name = "MISCELLANEO" })
-local CreditosTab = window:AddTab({ Icon = "star", Name = "CREDITOS" })
-local DupeTab = window:AddTab({ Icon = "box", Name = "DUPE ITEMS" })
-local CombatMain = CombatTab:AddSection({ Name = "COMBATE", Position = "left" })
-local CombatExtra = CombatTab:AddSection({ Name = "AL HACER CLIC (enemigos)", Position = "right" })
-CombatMain:AddLabel("Aura Asesina (auto-matar)"):AddToggle({
+local FarmTab = window:AddTab({ Icon = "bank", Name = "AUTO FARM" })
+local CombatTab = window:AddTab({ Icon = "sword", Name = "COMBAT" })
+local VisualTab = window:AddTab({ Icon = "eye", Name = "VISUALS" })
+local MoveTab = window:AddTab({ Icon = "person-running", Name = "MOVEMENT" })
+local MiscTab = window:AddTab({ Icon = "wrench", Name = "MISC" })
+
+local FarmMain = FarmTab:AddSection({ Name = "AUTO BONDS", Position = "left" })
+local FarmLoot = FarmTab:AddSection({ Name = "AUTO LOOT", Position = "right" })
+
+FarmMain:AddLabel("Auto Bonds"):AddToggle({
+    Default = false,
+    Flag = "AutoBonds",
+    Callback = function(v)
+        BondFarm.Enabled = v
+        if v then BondFarm.Collected = 0 end
+    end,
+})
+FarmMain:AddLabel("Mode"):AddDropdown({
+    Default = "TP to bond",
+    Values = { "TP to bond", "Bring bond to me" },
+    Flag = "BondsMode",
+    Callback = function(v) BondFarm.Mode = v end,
+})
+FarmMain:AddLabel("Collection delay"):AddSlider({
+    Min = 0.05, Max = 2, Default = 0.4, Rounding = 2, Size = 100,
+    Flag = "BondDelay",
+    Callback = function(v) BondFarm.Delay = v end,
+})
+FarmMain:AddLabel("Reset when done"):AddToggle({
+    Default = true,
+    Flag = "BondReset",
+    Callback = function(v) BondFarm.ResetWhenDone = v end,
+})
+FarmMain:AddLabel("Min collected to reset"):AddSlider({
+    Min = 0, Max = 20, Default = 1, Rounding = 0, Size = 100,
+    Flag = "BondMinReset",
+    Callback = function(v) BondFarm.MinCollected = v end,
+})
+BondFarm.Status = FarmMain:AddLabel("Bonds: 0 | collected: 0")
+FarmMain:AddButton({
+    Icon = "refresh",
+    Name = "Reset character now",
+    Callback = function() resetCharacter() end,
+})
+
+FarmLoot:AddLabel("Auto Collect Loot"):AddToggle({
+    Default = false,
+    Flag = "AutoCollect",
+    Callback = function(v) AutoCollect.Enabled = v end,
+})
+FarmLoot:AddLabel("Collect delay"):AddSlider({
+    Min = 0.05, Max = 2, Default = 0.35, Rounding = 2, Size = 100,
+    Flag = "AutoCollectDelay",
+    Callback = function(v) AutoCollect.Delay = v end,
+})
+AutoCollect.Status = FarmLoot:AddLabel("Loot collector idle")
+FarmLoot:AddLabel("Bring Items to me"):AddToggle({
+    Default = false,
+    Flag = "BringItems",
+    Callback = function(v) BringItemsOn = v end,
+})
+FarmLoot:AddLabel("Bring interval"):AddSlider({
+    Min = 0.3, Max = 10, Default = 1.5, Rounding = 1, Size = 100,
+    Flag = "BringItemsInterval",
+    Callback = function(v) BringItemsInterval = v end,
+})
+
+local CombatMain = CombatTab:AddSection({ Name = "COMBAT", Position = "left" })
+local CombatExtra = CombatTab:AddSection({ Name = "ON CLICK (mobs)", Position = "right" })
+
+CombatMain:AddLabel("Kill Aura (auto-kill)"):AddToggle({
     Default = false,
     Flag = "KillAura",
     Callback = function(v) KillAuraOn = v end,
 })
-CombatMain:AddLabel("Rango de aura"):AddSlider({
+CombatMain:AddLabel("Aura range"):AddSlider({
     Min = 10, Max = 2000, Default = 50, Rounding = 0, Size = 100,
     Flag = "KillAuraRange",
     Callback = function(v) KillAuraRange = v end,
 })
-CombatMain:AddLabel("Retraso de muerte por aura"):AddSlider({
+CombatMain:AddLabel("Aura kill delay"):AddSlider({
     Min = 0, Max = 1, Default = 0.1, Rounding = 2, Size = 100,
     Flag = "KillAuraDelay",
     Callback = function(v) KillAuraDelay = v end,
@@ -780,22 +1030,23 @@ CombatMain:AddLabel("Aimbot"):AddToggle({
     Flag = "Aimbot",
     Callback = function(v) AimbotOn = v end,
 })
-CombatMain:AddLabel("FOV Aimbot"):AddSlider({
+CombatMain:AddLabel("Aimbot FOV"):AddSlider({
     Min = 1, Max = 200, Default = 60, Rounding = 0, Size = 100,
     Flag = "AimbotFOV",
     Callback = function(v) AimbotFOV = v end,
 })
-CombatMain:AddLabel("Rango Aimbot"):AddSlider({
+CombatMain:AddLabel("Aimbot range"):AddSlider({
     Min = 10, Max = 250, Default = 100, Rounding = 0, Size = 100,
     Flag = "AimbotRange",
     Callback = function(v) AimbotRange = v end,
 })
-CombatMain:AddLabel("Vel. seguimiento %"):AddSlider({
+CombatMain:AddLabel("Tracking speed %"):AddSlider({
     Min = 1, Max = 100, Default = 15, Rounding = 0, Size = 100,
     Flag = "AimbotSpeed",
     Callback = function(v) AimbotSpeed = math.clamp(v / 100, 0.01, 1) end,
 })
-CombatExtra:AddLabel("Congelar enemigos (click)"):AddToggle({
+
+CombatExtra:AddLabel("Freeze Mobs (on click)"):AddToggle({
     Default = false,
     Flag = "FreezeMobs",
     Callback = function(v)
@@ -807,19 +1058,19 @@ CombatExtra:AddLabel("Congelar enemigos (click)"):AddToggle({
         end
     end,
 })
-CombatExtra:AddLabel("Matar instantaneo (click)"):AddToggle({
+CombatExtra:AddLabel("InstaKill Mobs (on click)"):AddToggle({
     Default = false,
     Flag = "InstaKill",
     Callback = function(v) InstaKill = v end,
 })
-CombatExtra:AddLabel("Rango de clic"):AddSlider({
+CombatExtra:AddLabel("Click range"):AddSlider({
     Min = 10, Max = 250, Default = 50, Rounding = 0, Size = 100,
     Flag = "KillRange",
     Callback = function(v) KillRange = v end,
 })
 CombatExtra:AddButton({
     Icon = "skull",
-    Name = "Matar todos en rango",
+    Name = "Kill all enemies in range",
     Callback = function()
         local hrp = getHRP()
         if not hrp then return end
@@ -834,141 +1085,149 @@ CombatExtra:AddButton({
                 end
             end
         end
-        Logging.new("skull", "Matados " .. count .. " enemigos", 3)
+        Logging.new("skull", "Killed " .. count .. " enemies", 3)
     end,
 })
-local VisualTargets = VisualTab:AddSection({ Name = "OBJETIVOS ESP", Position = "left" })
-local VisualStyle = VisualTab:AddSection({ Name = "ESTILO ESP", Position = "right" })
-local VisualEnv = VisualTab:AddSection({ Name = "ENTORNO", Position = "right" })
-VisualTargets:AddLabel("ESP Enemigos"):AddToggle({
+
+local VisualTargets = VisualTab:AddSection({ Name = "ESP TARGETS", Position = "left" })
+local VisualStyle = VisualTab:AddSection({ Name = "ESP STYLE", Position = "right" })
+local VisualEnv = VisualTab:AddSection({ Name = "ENVIRONMENT", Position = "right" })
+
+VisualTargets:AddLabel("Mob ESP"):AddToggle({
     Default = false,
     Flag = "MobESP",
     Callback = function(v) ESP.Mob = v; refreshEsp() end,
 })
-VisualTargets:AddLabel("ESP Jugadores"):AddToggle({
+VisualTargets:AddLabel("Player ESP"):AddToggle({
     Default = false,
     Flag = "PlayerESP",
     Callback = function(v) ESP.Player = v; refreshEsp() end,
 })
-VisualTargets:AddLabel("ESP Objetos"):AddToggle({
+VisualTargets:AddLabel("Item ESP"):AddToggle({
     Default = false,
     Flag = "ItemESP",
     Callback = function(v) ESP.Item = v; refreshEsp() end,
 })
-VisualTargets:AddLabel("ESP Minerales"):AddToggle({
+VisualTargets:AddLabel("Ore ESP"):AddToggle({
     Default = false,
     Flag = "OreESP",
     Callback = function(v) ESP.Ore = v; refreshEsp() end,
 })
-VisualTargets:AddLabel("ESP Tren"):AddToggle({
+VisualTargets:AddLabel("Train ESP"):AddToggle({
     Default = false,
     Flag = "TrainESP",
     Callback = function(v) ESP.Train = v; refreshEsp() end,
 })
-VisualTargets:AddLabel("Color Enemigos"):AddColorPicker({
+
+VisualTargets:AddLabel("Mob Color"):AddColorPicker({
     Default = Color3.fromRGB(255, 0, 0),
     Flag = "MobColor",
     Callback = function(v) ESP.Colors.Mob = v; refreshEsp() end,
 })
-VisualTargets:AddLabel("Color Jugadores"):AddColorPicker({
+VisualTargets:AddLabel("Player Color"):AddColorPicker({
     Default = Color3.fromRGB(0, 255, 255),
     Flag = "PlayerColor",
     Callback = function(v) ESP.Colors.Player = v; refreshEsp() end,
 })
-VisualTargets:AddLabel("Color Objetos"):AddColorPicker({
+VisualTargets:AddLabel("Item Color"):AddColorPicker({
     Default = Color3.fromRGB(255, 100, 100),
     Flag = "ItemColor",
     Callback = function(v) ESP.Colors.Item = v; refreshEsp() end,
 })
-VisualTargets:AddLabel("Color Minerales"):AddColorPicker({
+VisualTargets:AddLabel("Ore Color"):AddColorPicker({
     Default = Color3.fromRGB(255, 165, 0),
     Flag = "OreColor",
     Callback = function(v) ESP.Colors.Ore = v; refreshEsp() end,
 })
-VisualStyle:AddLabel("Caja ESP"):AddToggle({
+
+VisualStyle:AddLabel("Box ESP"):AddToggle({
     Default = false,
     Flag = "ESPBox",
     Callback = function(v) ESP.Box = v; refreshEsp() end,
 })
-VisualStyle:AddLabel("Resaltado ESP"):AddToggle({
+VisualStyle:AddLabel("Highlight ESP"):AddToggle({
     Default = true,
     Flag = "ESPHighlight",
     Callback = function(v) ESP.Highlight = v; refreshEsp() end,
 })
-VisualStyle:AddLabel("Lineas/Rastreadores"):AddToggle({
+VisualStyle:AddLabel("Tracers"):AddToggle({
     Default = false,
     Flag = "ESPTracers",
     Callback = function(v) ESP.Tracer = v; refreshEsp() end,
 })
-VisualStyle:AddLabel("Nombres"):AddToggle({
+VisualStyle:AddLabel("Names"):AddToggle({
     Default = true,
     Flag = "ESPNames",
     Callback = function(v) ESP.Names = v; refreshEsp() end,
 })
-VisualStyle:AddLabel("Distancia"):AddToggle({
+VisualStyle:AddLabel("Distance"):AddToggle({
     Default = false,
     Flag = "ESPDistance",
     Callback = function(v) ESP.Distance = v; refreshEsp() end,
 })
-VisualStyle:AddLabel("Barra vida"):AddToggle({
+VisualStyle:AddLabel("Health bar"):AddToggle({
     Default = true,
     Flag = "ESPHealth",
     Callback = function(v) ESP.Health = v; refreshEsp() end,
 })
-VisualEnv:AddLabel("Brillo total"):AddToggle({
+
+VisualEnv:AddLabel("Fullbright"):AddToggle({
     Default = false,
-    Flag = "Brillo total",
+    Flag = "Fullbright",
     Callback = function(v) Fullbright = v; applyFullbright(v) end,
 })
-VisualEnv:AddLabel("Sin niebla"):AddToggle({
+VisualEnv:AddLabel("No Fog"):AddToggle({
     Default = false,
     Flag = "NoFog",
     Callback = function(v) NoFog = v; applyNoFog(v) end,
 })
-VisualEnv:AddLabel("FOV Camara"):AddSlider({
+VisualEnv:AddLabel("Camera FOV"):AddSlider({
     Min = 40, Max = 120, Default = 70, Rounding = 0, Size = 100,
     Flag = "CamFOV",
     Callback = function(v) CurrentCamera.FieldOfView = v end,
 })
-VisualEnv:AddLabel("Edificios transparentes"):AddToggle({
+VisualEnv:AddLabel("Transparent Buildings"):AddToggle({
     Default = false,
     Flag = "TransBuild",
     Callback = function(v) TransBuild = v; applyTransBuild(v) end,
 })
-VisualEnv:AddLabel("Desbloquear camara"):AddToggle({
+VisualEnv:AddLabel("Unlock Camera"):AddToggle({
     Default = false,
     Flag = "UnlockCam",
     Callback = function(v) UnlockCam = v; if v then startCameraUnlock() end end,
 })
-local MoveMain = MoveTab:AddSection({ Name = "MOVIMIENTO", Position = "left" })
-local MoveTP = MoveTab:AddSection({ Name = "TELETRANSPORTE", Position = "right" })
-MoveMain:AddLabel("Impulso movimiento"):AddToggle({
+
+local MoveMain = MoveTab:AddSection({ Name = "MOVEMENT", Position = "left" })
+local MoveTP = MoveTab:AddSection({ Name = "TELEPORT", Position = "right" })
+
+MoveMain:AddLabel("Movement Boost"):AddToggle({
     Default = false,
     Flag = "Boost",
     Callback = function(v) Boost.Enabled = v end,
 })
-MoveMain:AddLabel("Fuerza impulso %"):AddSlider({
+MoveMain:AddLabel("Boost Strength %"):AddSlider({
     Min = 0, Max = 100, Default = 100, Rounding = 0, Size = 100,
     Flag = "BoostStrength",
     Callback = function(v) Boost.Strength = v end,
 })
-MoveMain:AddLabel("NoClip (traspasar)"):AddToggle({
+MoveMain:AddLabel("NoClip"):AddToggle({
     Default = false,
-    Flag = "NoClip (traspasar)",
+    Flag = "NoClip",
     Callback = function(v) NoClip = v end,
 })
-MoveMain:AddLabel("Volar adelante (NoClip)"):AddToggle({
+MoveMain:AddLabel("Fly Forward (NoClip)"):AddToggle({
     Default = false,
     Flag = "FlyForward",
     Callback = function(v) FlyForward = v end,
 })
-MoveMain:AddLabel("Caminar hacia el tren"):AddToggle({
+MoveMain:AddLabel("Walk to Train"):AddToggle({
     Default = false,
     Flag = "WalkToTrain",
     Callback = function(v) WalkToTrain = v end,
 })
-MoveTP:AddLabel("Ubicacion"):AddDropdown({
-    Default = "Zona de inicio",
+
+MoveTP:AddLabel("Location"):AddDropdown({
+    Default = "Starting Zone",
     Values = (function()
         local names = {}
         for _, loc in ipairs(LOCATIONS) do names[#names + 1] = loc[1] end
@@ -978,14 +1237,14 @@ MoveTP:AddLabel("Ubicacion"):AddDropdown({
 })
 MoveTP:AddButton({
     Icon = "arrow-right",
-    Name = "Teletransportar",
+    Name = "Teleport",
     Callback = function()
         local flag = NeverLose.Flags["TPLocation"]
-        local selected = flag and flag:GetValue() or "Zona de inicio"
+        local selected = flag and flag:GetValue() or "Starting Zone"
         for _, loc in ipairs(LOCATIONS) do
             if loc[1] == selected then
                 teleportTo(loc[2], 10)
-                Logging.new("map", "Teletransportado a " .. loc[1], 3)
+                Logging.new("map", "Teleported to " .. loc[1], 3)
                 break
             end
         end
@@ -993,29 +1252,31 @@ MoveTP:AddButton({
 })
 MoveTP:AddButton({
     Icon = "home",
-    Name = "TP a aparicion",
+    Name = "Teleport to spawn",
     Callback = function()
         local spawn = Workspace:FindFirstChild("SpawnLocation")
         local pos = spawn and spawn.Position or Vector3.new(0, 3, 29825)
         teleportTo(pos, 5)
     end,
 })
-local MiscMain = MiscTab:AddSection({ Name = "MISCELLANEO", Position = "left" })
-local MiscThemes = MiscTab:AddSection({ Name = "ILUMINACION", Position = "right" })
+
+local MiscMain = MiscTab:AddSection({ Name = "MISC", Position = "left" })
+local MiscThemes = MiscTab:AddSection({ Name = "LIGHTING", Position = "right" })
+
 MiscMain:AddButton({
     Icon = "refresh",
-    Name = "Reiniciar PJ",
+    Name = "Reset Character",
     Callback = function()
         resetCharacter()
-        Logging.new("refresh", "Personaje reiniciado", 3)
+        Logging.new("refresh", "Character reset fired", 3)
     end,
 })
-MiscMain:AddLabel("Ambiente personalizado"):AddToggle({
+MiscMain:AddLabel("Custom Ambient"):AddToggle({
     Default = false,
     Flag = "Ambient",
     Callback = function(v) AmbientOn = v; applyAmbient(v) end,
 })
-MiscMain:AddLabel("Color ambiente"):AddColorPicker({
+MiscMain:AddLabel("Ambient Color"):AddColorPicker({
     Default = Color3.fromRGB(128, 128, 255),
     Flag = "AmbientColor",
     Callback = function(v)
@@ -1023,11 +1284,72 @@ MiscMain:AddLabel("Color ambiente"):AddColorPicker({
         if AmbientOn then applyAmbient(true) end
     end,
 })
-MiscMain:AddLabel("Modo Dios"):AddToggle({
+MiscMain:AddLabel("God Mode (health)"):AddToggle({
     Default = false,
     Flag = "GodMode",
     Callback = function(v) _G.__chitukGodMode = v end,
 })
+
+local ItemsTab = window:AddTab({ Icon = "cube", Name = "ITEMS" })
+local CreditsTab = window:AddTab({ Icon = "star", Name = "CREDITS" })
+
+local DupeSection = ItemsTab:AddSection({ Name = "Dupe Items", Position = "left" })
+
+DupeSection:AddLabel("Item to Dupe"):AddDropdown({
+    Default = "shotgun",
+    Values = { "shotgun", "revolver", "navy_revolver", "rifle", "snake_oil", "bandage" },
+    Flag = "DupeItem",
+    Callback = function(v)
+        Dupe.Item = v
+        Dupe.Count = 0
+    end,
+})
+
+DupeSection:AddLabel("Amount (0 = unlimited)"):AddSlider({
+    Min = 0,
+    Max = 100,
+    Default = 0,
+    Rounding = 0,
+    Size = 100,
+    Flag = "DupeAmount",
+    Callback = function(v)
+        Dupe.Amount = v
+        Dupe.Count = 0
+    end,
+})
+
+DupeSection:AddLabel("Auto Dupe"):AddToggle({
+    Default = false,
+    Flag = "DupeEnabled",
+    Callback = function(v)
+        Dupe.Enabled = v
+        Dupe.Count = 0
+    end,
+})
+
+DupeStatus = DupeSection:AddLabel("Dupe count: 0")
+
+local CreditsSection = CreditsTab:AddSection({ Name = "Credits", Position = "left" })
+
+local creditsText = [[Chituk Youtube: https://youtube.com/@chituk_9?si=56b66uo-BAk9maHf
+Chituk Discord: https://discord.gg/mdvByagDr3
+Pichigdasos User De Discord: miguel_minecraft87_64379
+Pichigdasos Tiktok: https://www.tiktok.com/@blue_dragon306?_r=1&_t=ZS-99HBSjBL4fl
+WeroScripts Youtube: https://www.youtube.com/@WeroScripts]]
+
+CreditsSection:AddLabel(creditsText)
+
+CreditsSection:AddButton({
+    Icon = "copy",
+    Name = "Copy Credits",
+    Callback = function()
+        pcall(function()
+            setclipboard(creditsText)
+            Logging.new("info", "Credits copied to clipboard!", 3)
+        end)
+    end,
+})
+
 task.spawn(function()
     while true do
         if _G.__chitukGodMode then
@@ -1037,282 +1359,56 @@ task.spawn(function()
         task.wait(0.3)
     end
 end)
+end
+BuildUI()
 
 task.spawn(function()
-    while task.wait(0.15) do
-        pcall(function()
-            if dupeObjectModels then
-                for _, item in ipairs(dupeObjectModels:GetChildren()) do
-                    local entityServer = item:GetAttribute("entity_server")
-                    if entityServer ~= nil then
-                        if dupeCapturadoCondicion and dupePickup then
-                            if (dupeCantidadNum == 0) or (dupeSumaSecundaria < dupeCantidadNum) then
-                                if item.Name == dupeTexto then
-                                    local success = pcall(function()
-                                        dupePickup:FireServer(entityServer)
-                                    end)
-                                    if success then
-                                        dupeSumaSecundaria = dupeSumaSecundaria + 1
+    while true do
+        if Dupe.Enabled then
+            local objectModels = Workspace:FindFirstChild("ObjectModels")
+            if objectModels then
+                for _, item in ipairs(objectModels:GetChildren()) do
+                    if Dupe.Enabled then
+                        local entity_server = item:GetAttribute("entity_server")
+                        if entity_server and item.Name == Dupe.Item then
+                            if Dupe.Amount == 0 or Dupe.Count < Dupe.Amount then
+                                local success = pcall(function()
+                                    fireRemote("Pickup", { entity_server })
+                                end)
+                                if success then
+                                    Dupe.Count = Dupe.Count + 1
+                                    if DupeStatus then
+                                        DupeStatus:SetText("Dupe count: " .. Dupe.Count)
                                     end
                                 end
                             end
                         end
-                        if dupeBanderaRespaldo and dupeActionable then
-                            if item.Name == "money_bag" or string.find(string.lower(item.Name), "money") then
-                                pcall(function()
-                                    dupeActionable:FireServer(entityServer)
-                                end)
-                            end
-                        end
+                    else
+                        break
                     end
                 end
             end
-            if dupeBanderaAlterna and dupeDropTool then
-                local contenedor = LocalPlayer:FindFirstChildOfClass("Backpack") or LocalPlayer.Character
-                if contenedor then
-                    local suma = 0
-                    for _, item in ipairs(contenedor:GetChildren()) do
-                        if (dupeSumaAlterna > 0) and (suma >= dupeSumaAlterna) then
-                            break
-                        end
-                        if item:IsA("Tool") and ((dupeTextoSecundario == "All") or (item.Name == dupeTextoSecundario)) then
-                            pcall(function()
-                                dupeDropTool:FireServer(item)
-                            end)
-                            suma = suma + 1
-                        end
-                    end
-                end
-            end
-            if dupeBanderaAdicional and dupeDropTool then
-                local opcion = LocalPlayer:FindFirstChildOfClass("Backpack") or LocalPlayer.Character
-                local miPersonaje = LocalPlayer.Character
-                local miHRP = miPersonaje and miPersonaje:FindFirstChild("HumanoidRootPart")
-                if opcion and miHRP then
-                    local condicionMarco = Workspace:FindFirstChild("StartingZone", true)
-                        and Workspace:FindFirstChild("StartingZone.Buildings.TradingPost.BountySquare", true)
-                    if condicionMarco then
-                        local marcoCF = nil
-                        if condicionMarco:IsA("BasePart") then
-                            marcoCF = condicionMarco.CFrame
-                        else
-                            marcoCF = condicionMarco:GetPivot()
-                        end
-                        local nuevaPos = marcoCF * CFrame.new(4, 3, 4)
-                        miHRP.CFrame = nuevaPos
-                        task.wait(0.1)
-                        local suma = 0
-                        for _, item in ipairs(opcion:GetChildren()) do
-                            if (dupeSumaAlterna > 0) and (suma >= dupeSumaAlterna) then
-                                break
-                            end
-                            if item:IsA("Tool") and ((dupeTextoSecundario == "All") or (item.Name == dupeTextoSecundario)) then
-                                pcall(function()
-                                    dupeDropTool:FireServer(item)
-                                end)
-                                suma = suma + 1
-                            end
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end)
-
-task.spawn(function()
-    while task.wait(1) do
-        pcall(function()
-            if dupeBanderaSecundaria and dupeStore then
-                for _, item in ipairs(Workspace:GetDescendants()) do
-                    if item:IsA("Humanoid") and item.Health <= 0 then
-                        local padre = item.Parent
-                        if padre and padre:IsA("Model") then
-                            local condicion = padre:GetAttribute("entity_server")
-                                or (padre.PrimaryPart and padre.PrimaryPart:GetAttribute("entity_server"))
-                            if condicion then
-                                pcall(function()
-                                    dupeStore:FireServer(condicion)
-                                end)
-                            end
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end)
-
-local DupeMain = DupeTab:AddSection({ Name = "DUPE DE ITEMS", Position = "left" })
-local DupeExtra = DupeTab:AddSection({ Name = "UTILIDADES EXTRA", Position = "right" })
-
-DupeMain:AddLabel("📌Nota importante: Para que el Dupe de items funcione necesitas estar en una Zona Segura")
-
-DupeMain:AddLabel("Lista de items para dupe"):AddDropdown({
-    Default = "shotgun",
-    Values = dupeOpcionesLista,
-    Flag = "DupeItemsLista",
-    Callback = function(v) dupeTexto = v end,
-})
-
-DupeMain:AddLabel("Cuantos quieres dupar? (Cantidad)"):AddInput({
-    Placeholder = "Ingresa cantidad (0 = Ilimitado)",
-    Flag = "DupeCantidadInput",
-    Callback = function(textoNum)
-        dupeCantidadNum = tonumber(textoNum) or 0
-        dupeSumaSecundaria = 0
-    end,
-})
-
-DupeMain:AddLabel("Auto Dupe Item (Seleccionado)"):AddToggle({
-    Default = false,
-    Flag = "DupeAutoActivar",
-    Callback = function(bandera)
-        dupeCapturadoCondicion = bandera
-        if bandera then
-            dupeSumaSecundaria = 0
-            Logging.new("copy", "Dupe activado: " .. dupeTexto, 3)
+            task.wait(0.15)
         else
-            Logging.new("copy", "Dupe desactivado. Total dupes: " .. dupeSumaSecundaria, 3)
+            task.wait(0.5)
         end
-    end,
-})
+    end
+end)
 
-DupeMain:AddLabel("Contador: " .. tostring(dupeSumaSecundaria))
-
-DupeMain:AddButton({
-    Icon = "refresh",
-    Name = "Reiniciar contador",
-    Callback = function()
-        dupeSumaSecundaria = 0
-        Logging.new("refresh", "Contador reiniciado a 0", 2)
-    end,
-})
-
-DupeExtra:AddLabel("Auto Guardar Zombies Muertos"):AddToggle({
-    Default = false,
-    Flag = "DupeAutoGuardarZombies",
-    Callback = function(v) dupeBanderaSecundaria = v end,
-})
-
-DupeExtra:AddLabel("Auto Recolectar Bolsas de Dinero"):AddToggle({
-    Default = false,
-    Flag = "DupeAutoDinero",
-    Callback = function(v) dupeBanderaRespaldo = v end,
-})
-
-DupeExtra:AddLabel("Seleccionar item de mochila"):AddDropdown({
-    Default = "All",
-    Values = { "All", "shotgun", "revolver", "rifle" },
-    Flag = "DupeDropSeleccion",
-    Callback = function(v) dupeTextoSecundario = v end,
-})
-
-DupeExtra:AddButton({
-    Icon = "refresh",
-    Name = "🔄 Actualizar lista mochila",
-    Callback = function()
-        local nuevosItems = dupeObtenerNombresItems()
-        Logging.new("refresh", "Lista actualizada: " .. tostring(#nuevosItems) .. " items", 2)
-    end,
-})
-
-DupeExtra:AddLabel("Cuantos quieres tirar? (por ciclo)"):AddInput({
-    Placeholder = "Ingresa cantidad (0 = Todos)",
-    Flag = "DupeDropCantidad",
-    Callback = function(textoNum)
-        dupeSumaAlterna = tonumber(textoNum) or 0
-    end,
-})
-
-DupeExtra:AddLabel("Auto Tirar item seleccionado"):AddToggle({
-    Default = false,
-    Flag = "DupeAutoTirar",
-    Callback = function(v) dupeBanderaAlterna = v end,
-})
-
-DupeExtra:AddLabel("Auto TP y Tirar en BountySquare"):AddToggle({
-    Default = false,
-    Flag = "DupeAutoTPTirar",
-    Callback = function(v) dupeBanderaAdicional = v end,
-})
-
-local CreditosMain = CreditosTab:AddSection({ Name = "CREDITOS", Position = "left" })
-
-CreditosMain:AddLabel("Chituk Youtube")
-CreditosMain:AddButton({
-    Icon = "copy",
-    Name = "Copiar enlace YouTube",
-    Callback = function()
-        if setclipboard then
-            setclipboard("https://youtube.com/@chituk_9?si=56b66uo-BAk9maHf")
-            Logging.new("copy", "Enlace YouTube de Chituk copiado", 3)
-        end
-    end,
-})
-
-CreditosMain:AddLabel("Discord Chituk")
-CreditosMain:AddButton({
-    Icon = "copy",
-    Name = "Copiar enlace Discord",
-    Callback = function()
-        if setclipboard then
-            setclipboard("https://discord.gg/mdvByagDr3")
-            Logging.new("copy", "Enlace Discord de Chituk copiado", 3)
-        end
-    end,
-})
-
-CreditosMain:AddLabel("WeroScripts Youtube")
-CreditosMain:AddButton({
-    Icon = "copy",
-    Name = "Copiar enlace YouTube",
-    Callback = function()
-        if setclipboard then
-            setclipboard("https://www.youtube.com/@WeroScripts")
-            Logging.new("copy", "Enlace YouTube de WeroScripts copiado", 3)
-        end
-    end,
-})
-
-CreditosMain:AddLabel("Pichigdasos Discord")
-CreditosMain:AddButton({
-    Icon = "copy",
-    Name = "Copiar usuario Discord",
-    Callback = function()
-        if setclipboard then
-            setclipboard("miguel_minecraft87_64379")
-            Logging.new("copy", "Usuario Discord de Pichigdasos copiado", 3)
-        end
-    end,
-})
-
-CreditosMain:AddLabel("Pichigdasos Tiktok")
-CreditosMain:AddButton({
-    Icon = "copy",
-    Name = "Copiar enlace Tiktok",
-    Callback = function()
-        if setclipboard then
-            setclipboard("https://www.tiktok.com/@blue_dragon306?_r=1&_t=ZS-99H550nDNDh")
-            Logging.new("copy", "Enlace Tiktok de Pichigdasos copiado", 3)
-        end
-    end,
-})
-
-end
-BuildUI()
 SavedLighting.Ambient = Lighting.Ambient
 SavedLighting.OutdoorAmbient = Lighting.OutdoorAmbient
 SavedLighting.Brightness = Lighting.Brightness
 SavedLighting.ClockTime = Lighting.ClockTime
 SavedLighting.GlobalShadows = Lighting.GlobalShadows
+
 task.wait(0.5)
 Notification.new({
     Title = "Chituk Scripts",
-    Content = "Dead Rails cargado - ESP, Combate, Movimiento y mas listo.",
+    Content = "Dead Rails loaded - Auto Bonds, ESP, Kill & more ready.",
     Duration = 4,
 })
-Logging.new("checkmark", "Chituk Scripts cargado para Dead Rails", 5)
+Logging.new("checkmark", "Chituk Scripts loaded for Dead Rails", 5)
+
 return {
     Library = NeverLose,
     Window = window,
