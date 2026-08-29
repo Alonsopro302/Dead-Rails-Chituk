@@ -169,15 +169,17 @@ local function findRemoteByName(name)
     return nil
 end
 
-local storeContainerDupe = RStorage
+local dupeStoreContainer = RStorage
     :WaitForChild("Shared")
     :WaitForChild("Universe")
     :WaitForChild("Network")
     :WaitForChild("RemoteEvent")
-local pickupDupe = storeContainerDupe:WaitForChild("Pickup")
-local actionableDupe = storeContainerDupe:WaitForChild("Actionable")
-local dropToolDupe = storeContainerDupe:WaitForChild("DropTool")
-local objectModelsDupe = Workspace:WaitForChild("ObjectModels")
+local dupeSwingMelee = dupeStoreContainer:WaitForChild("SwingMelee")
+local dupeStore = dupeStoreContainer:WaitForChild("Store")
+local dupePickup = dupeStoreContainer:WaitForChild("Pickup")
+local dupeActionable = dupeStoreContainer:WaitForChild("Actionable")
+local dupeDropTool = dupeStoreContainer:WaitForChild("DropTool")
+local dupeObjectModels = Workspace:WaitForChild("ObjectModels")
 
 local function getWorld()
     return tryRequire(RStorage.Shared.Universe.ECS.world)
@@ -257,11 +259,17 @@ local AmbientOn = false
 local AmbientColor = Color3.fromRGB(128, 128, 255)
 local SavedLighting = {}
 local DrawingOk = (Drawing ~= nil)
-local dupeItemSeleccionado = "shotgun"
-local dupeCantidad = 0
-local dupeActivo = false
-local dupeContador = 0
-local dupeOpciones = { "shotgun", "revolver", "navy_revolver", "rifle", "snake_oil", "bandage" }
+local dupeTexto = "shotgun"
+local dupeOpcionesLista = { "shotgun", "revolver", "navy_revolver", "rifle", "snake_oil", "bandage" }
+local dupeCantidadNum = 0
+local dupeCapturadoCondicion = false
+local dupeSumaSecundaria = 0
+local dupeBanderaSecundaria = false
+local dupeBanderaRespaldo = false
+local dupeBanderaAlterna = false
+local dupeBanderaAdicional = false
+local dupeSumaAlterna = 0
+local dupeTextoSecundario = "All"
 
 local function clearEspObject(obj)
     for _, v in pairs(obj) do
@@ -412,6 +420,23 @@ local function updateEsp()
             end
         end
     end
+end
+
+local function dupeObtenerNombresItems()
+    local nombres = { "All" }
+    local nombreDatos = {}
+    local function procesarResultado(contenedor)
+        if not contenedor then return end
+        for _, item in ipairs(contenedor:GetChildren()) do
+            if item:IsA("Tool") and not nombreDatos[item.Name] then
+                nombreDatos[item.Name] = true
+                table.insert(nombres, item.Name)
+            end
+        end
+    end
+    procesarResultado(LocalPlayer:FindFirstChildOfClass("Backpack"))
+    procesarResultado(LocalPlayer.Character)
+    return nombres
 end
 
 local function getLootItems()
@@ -719,6 +744,7 @@ local VisualTab = window:AddTab({ Icon = "eye", Name = "VISUALES" })
 local MoveTab = window:AddTab({ Icon = "person-running", Name = "MOVIMIENTO" })
 local MiscTab = window:AddTab({ Icon = "wrench", Name = "MISCELLANEO" })
 local CreditosTab = window:AddTab({ Icon = "star", Name = "CREDITOS" })
+local DupeTab = window:AddTab({ Icon = "copy", Name = "DUPE ITEMS" })
 local CombatMain = CombatTab:AddSection({ Name = "COMBATE", Position = "left" })
 local CombatExtra = CombatTab:AddSection({ Name = "AL HACER CLIC (enemigos)", Position = "right" })
 CombatMain:AddLabel("Aura Asesina (auto-matar)"):AddToggle({
@@ -962,47 +988,6 @@ MoveTP:AddButton({
     end,
 })
 local MiscMain = MiscTab:AddSection({ Name = "MISCELLANEO", Position = "left" })
-
-local MiscDupe = MiscTab:AddSection({ Name = "DUPE ITEMS", Position = "left" })
-
-MiscDupe:AddLabel("📌Nota: Dupe solo funciona en Zona Segura")
-MiscDupe:AddLabel("Seleccionar item"):AddDropdown({
-    Default = "shotgun",
-    Values = dupeOpciones,
-    Flag = "DupeItem",
-    Callback = function(v) dupeItemSeleccionado = v end,
-})
-MiscDupe:AddLabel("Cantidad (0 = ilimitado)"):AddInput({
-    Placeholder = "0",
-    Flag = "DupeCantidad",
-    Callback = function(v)
-        dupeCantidad = tonumber(v) or 0
-        dupeContador = 0
-    end,
-})
-MiscDupe:AddLabel("Activar Dupe"):AddToggle({
-    Default = false,
-    Flag = "DupeActivo",
-    Callback = function(v)
-        dupeActivo = v
-        if v then
-            dupeContador = 0
-            Logging.new("copy", "Dupe activado: " .. dupeItemSeleccionado, 3)
-        else
-            Logging.new("copy", "Dupe desactivado. Total: " .. dupeContador, 3)
-        end
-    end,
-})
-MiscDupe:AddLabel("Contador: 0")
-MiscDupe:AddButton({
-    Icon = "refresh",
-    Name = "Reiniciar contador",
-    Callback = function()
-        dupeContador = 0
-        Logging.new("refresh", "Contador reiniciado", 2)
-    end,
-})
-
 local MiscThemes = MiscTab:AddSection({ Name = "ILUMINACION", Position = "right" })
 MiscMain:AddButton({
     Icon = "refresh",
@@ -1042,19 +1027,76 @@ end)
 
 task.spawn(function()
     while task.wait(0.15) do
-        if dupeActivo and objectModelsDupe and pickupDupe then
-            for _, item in ipairs(objectModelsDupe:GetChildren()) do
-                if not dupeActivo then break end
+        if dupeObjectModels then
+            for _, item in ipairs(dupeObjectModels:GetChildren()) do
                 local entityServer = item:GetAttribute("entity_server")
                 if entityServer ~= nil then
-                    if (dupeCantidad == 0) or (dupeContador < dupeCantidad) then
-                        if item.Name == dupeItemSeleccionado then
-                            local success = pcall(function()
-                                pickupDupe:FireServer(entityServer)
-                            end)
-                            if success then
-                                dupeContador = dupeContador + 1
+                    if dupeCapturadoCondicion and dupePickup then
+                        if (dupeCantidadNum == 0) or (dupeSumaSecundaria < dupeCantidadNum) then
+                            if item.Name == dupeTexto then
+                                local success = pcall(function()
+                                    dupePickup:FireServer(entityServer)
+                                end)
+                                if success then
+                                    dupeSumaSecundaria = dupeSumaSecundaria + 1
+                                end
                             end
+                        end
+                    end
+                    if dupeBanderaRespaldo and dupeActionable then
+                        if item.Name == "money_bag" or string.find(string.lower(item.Name), "money") then
+                            pcall(function()
+                                dupeActionable:FireServer(entityServer)
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+        if dupeBanderaAlterna and dupeDropTool then
+            local contenedor = LocalPlayer:FindFirstChildOfClass("Backpack") or LocalPlayer.Character
+            if contenedor then
+                local suma = 0
+                for _, item in ipairs(contenedor:GetChildren()) do
+                    if (dupeSumaAlterna > 0) and (suma >= dupeSumaAlterna) then
+                        break
+                    end
+                    if item:IsA("Tool") and ((dupeTextoSecundario == "All") or (item.Name == dupeTextoSecundario)) then
+                        pcall(function()
+                            dupeDropTool:FireServer(item)
+                        end)
+                        suma = suma + 1
+                    end
+                end
+            end
+        end
+        if dupeBanderaAdicional and dupeDropTool then
+            local opcion = LocalPlayer:FindFirstChildOfClass("Backpack") or LocalPlayer.Character
+            local miPersonaje = LocalPlayer.Character
+            local miHRP = miPersonaje and miPersonaje:FindFirstChild("HumanoidRootPart")
+            if opcion and miHRP then
+                local condicionMarco = Workspace:FindFirstChild("StartingZone", true)
+                    and Workspace:FindFirstChild("StartingZone.Buildings.TradingPost.BountySquare", true)
+                if condicionMarco then
+                    local marcoCF = nil
+                    if condicionMarco:IsA("BasePart") then
+                        marcoCF = condicionMarco.CFrame
+                    else
+                        marcoCF = condicionMarco:GetPivot()
+                    end
+                    local nuevaPos = marcoCF * CFrame.new(4, 3, 4)
+                    miHRP.CFrame = nuevaPos
+                    task.wait(0.1)
+                    local suma = 0
+                    for _, item in ipairs(opcion:GetChildren()) do
+                        if (dupeSumaAlterna > 0) and (suma >= dupeSumaAlterna) then
+                            break
+                        end
+                        if item:IsA("Tool") and ((dupeTextoSecundario == "All") or (item.Name == dupeTextoSecundario)) then
+                            pcall(function()
+                                dupeDropTool:FireServer(item)
+                            end)
+                            suma = suma + 1
                         end
                     end
                 end
@@ -1062,6 +1104,120 @@ task.spawn(function()
         end
     end
 end)
+
+task.spawn(function()
+    while task.wait(1) do
+        if dupeBanderaSecundaria and dupeStore then
+            for _, item in ipairs(Workspace:GetDescendants()) do
+                if item:IsA("Humanoid") and item.Health <= 0 then
+                    local padre = item.Parent
+                    if padre and padre:IsA("Model") then
+                        local condicion = padre:GetAttribute("entity_server")
+                            or (padre.PrimaryPart and padre.PrimaryPart:GetAttribute("entity_server"))
+                        if condicion then
+                            pcall(function()
+                                dupeStore:FireServer(condicion)
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+local DupeMain = DupeTab:AddSection({ Name = "DUPE DE ITEMS", Position = "left" })
+local DupeExtra = DupeTab:AddSection({ Name = "UTILIDADES EXTRA", Position = "right" })
+
+DupeMain:AddLabel("📌Nota importante: Para que el Dupe de items funcione necesitas estar en una Zona Segura")
+
+DupeMain:AddLabel("Lista de items para dupe"):AddDropdown({
+    Default = "shotgun",
+    Values = dupeOpcionesLista,
+    Flag = "DupeItemsLista",
+    Callback = function(v) dupeTexto = v end,
+})
+
+DupeMain:AddLabel("Cuantos quieres dupar? (Cantidad)"):AddInput({
+    Placeholder = "Ingresa cantidad (0 = Ilimitado)",
+    Flag = "DupeCantidadInput",
+    Callback = function(textoNum)
+        dupeCantidadNum = tonumber(textoNum) or 0
+        dupeSumaSecundaria = 0
+    end,
+})
+
+DupeMain:AddLabel("Auto Dupe Item (Seleccionado)"):AddToggle({
+    Default = false,
+    Flag = "DupeAutoActivar",
+    Callback = function(bandera)
+        dupeCapturadoCondicion = bandera
+        if bandera then
+            dupeSumaSecundaria = 0
+            Logging.new("copy", "Dupe activado: " .. dupeTexto, 3)
+        else
+            Logging.new("copy", "Dupe desactivado. Total dupes: " .. dupeSumaSecundaria, 3)
+        end
+    end,
+})
+
+DupeMain:AddLabel("Contador: " .. tostring(dupeSumaSecundaria))
+
+DupeMain:AddButton({
+    Icon = "refresh",
+    Name = "Reiniciar contador",
+    Callback = function()
+        dupeSumaSecundaria = 0
+        Logging.new("refresh", "Contador reiniciado a 0", 2)
+    end,
+})
+
+DupeExtra:AddLabel("Auto Guardar Zombies Muertos"):AddToggle({
+    Default = false,
+    Flag = "DupeAutoGuardarZombies",
+    Callback = function(v) dupeBanderaSecundaria = v end,
+})
+
+DupeExtra:AddLabel("Auto Recolectar Bolsas de Dinero"):AddToggle({
+    Default = false,
+    Flag = "DupeAutoDinero",
+    Callback = function(v) dupeBanderaRespaldo = v end,
+})
+
+DupeExtra:AddLabel("Seleccionar item de mochila"):AddDropdown({
+    Default = "All",
+    Values = dupeObtenerNombresItems(),
+    Flag = "DupeDropSeleccion",
+    Callback = function(v) dupeTextoSecundario = v end,
+})
+
+DupeExtra:AddButton({
+    Icon = "refresh",
+    Name = "🔄 Actualizar lista mochila",
+    Callback = function()
+        Logging.new("refresh", "Lista de mochila actualizada", 2)
+    end,
+})
+
+DupeExtra:AddLabel("Cuantos quieres tirar? (por ciclo)"):AddInput({
+    Placeholder = "Ingresa cantidad (0 = Todos)",
+    Flag = "DupeDropCantidad",
+    Callback = function(textoNum)
+        dupeSumaAlterna = tonumber(textoNum) or 0
+    end,
+})
+
+DupeExtra:AddLabel("Auto Tirar item seleccionado"):AddToggle({
+    Default = false,
+    Flag = "DupeAutoTirar",
+    Callback = function(v) dupeBanderaAlterna = v end,
+})
+
+DupeExtra:AddLabel("Auto TP y Tirar en BountySquare"):AddToggle({
+    Default = false,
+    Flag = "DupeAutoTPTirar",
+    Callback = function(v) dupeBanderaAdicional = v end,
+})
 
 local CreditosMain = CreditosTab:AddSection({ Name = "CREDITOS", Position = "left" })
 
